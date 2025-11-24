@@ -1,0 +1,183 @@
+import 'dart:ui';
+import 'dart:async';
+import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/services.dart';
+
+// --- 入口 ---
+void main() {
+  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+    statusBarColor: Colors.transparent,
+    statusBarIconBrightness: Brightness.dark,
+  ));
+  runApp(const ApplePantryApp());
+}
+
+// --- 主应用 ---
+class ApplePantryApp extends StatelessWidget {
+  const ApplePantryApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Apple Pantry',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        scaffoldBackgroundColor: const Color(0xFFF5F5F7),
+        primaryColor: const Color(0xFF0A84FF),
+        fontFamily: '.SF Pro Text',
+        useMaterial3: true,
+      ),
+      home: const MainShell(),
+    );
+  }
+}
+
+// --- 主 Shell (包含底部导航) ---
+class MainShell extends StatefulWidget {
+  const MainShell({super.key});
+
+  @override
+  State<MainShell> createState() => _MainShellState();
+}
+
+class _MainShellState extends State<MainShell> {
+  int _currentIndex = 0;
+
+  // 维护商品列表状态
+  final List<dynamic> _items = [];
+
+  _MainShellState() {
+    // 初始化模拟数据
+    _items.addAll([
+      {
+        'id': 1,
+        'name': '全脂牛奶',
+        'category': '乳制品',
+        'daysLeft': 2,
+        'totalDays': 14,
+        'emoji': '🥛',
+        'purchaseDate': DateTime.now().subtract(const Duration(days: 12)),
+        'brand': '蒙牛',
+        'description': '精选优质牧场奶源，口感醇厚，营养丰富。适合直接饮用或制作咖啡、麦片等。',
+      },
+      {
+        'id': 2,
+        'name': '法式软面包',
+        'category': '烘焙',
+        'daysLeft': 12,
+        'totalDays': 20,
+        'emoji': '🍞',
+        'purchaseDate': DateTime.now().subtract(const Duration(days: 8)),
+        'brand': '味多美',
+        'description': '新鲜出炉的法式软面包，松软香甜，是早餐的完美选择。',
+      },
+      {
+        'id': 3,
+        'name': '牛油果 (3个)',
+        'category': '生鲜',
+        'daysLeft': 4,
+        'totalDays': 10,
+        'emoji': '🥑',
+        'purchaseDate': DateTime.now().subtract(const Duration(days: 6)),
+        'brand': '进口精选',
+        'description': '来自墨西哥的优质牛油果，富含健康脂肪和维生素，口感绵密香甜。',
+      },
+      {
+        'id': 4,
+        'name': '草莓果酱',
+        'category': '调味',
+        'daysLeft': 45,
+        'totalDays': 180,
+        'emoji': '🍓',
+        'purchaseDate': DateTime.now().subtract(const Duration(days: 135)),
+        'brand': '农夫果园',
+        'description': '100%新鲜草莓制作，无添加剂，可搭配吐司、酸奶食用。',
+      },
+      {
+        'id': 5,
+        'name': '三文鱼切片',
+        'category': '冷冻',
+        'daysLeft': 1,
+        'totalDays': 7,
+        'emoji': '🐟',
+        'purchaseDate': DateTime.now().subtract(const Duration(days: 6)),
+        'brand': '挪威海产',
+        'description': '新鲜三文鱼切片，肉质鲜美，富含Omega-3脂肪酸。推荐生食或轻煎。',
+      },
+    ]);
+  }
+
+  // 处理添加商品
+  void _handleAddItem(Map<String, dynamic> item) {
+    setState(() {
+      _items.insert(0, item);
+      _currentIndex = 0; // 返回首页
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('已添加: ${item['name']}')),
+    );
+  }
+
+  // 提供给Dashboard的添加方法
+  void addItem(Map<String, dynamic> item) {
+    _handleAddItem(item);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final List<Widget> _pages = [
+      const DashboardScreen(),
+      AddSelectScreen(
+        onScanComplete: _handleAddItem,
+        onManualAddComplete: _handleAddItem,
+      ),
+      const SettingsScreen(),
+    ];
+
+    return Scaffold(
+      body: IndexedStack(
+        index: _currentIndex,
+        children: _pages,
+      ),
+      bottomNavigationBar: Container(
+        height: 84,
+        padding: const EdgeInsets.only(bottom: 20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(0),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, -4),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            NavItem(
+              icon: CupertinoIcons.home,
+              label: '首页',
+              isActive: _currentIndex == 0,
+              onTap: () => setState(() => _currentIndex = 0),
+            ),
+            NavItem(
+              icon: CupertinoIcons.add,
+              label: '新增',
+              isActive: _currentIndex == 1,
+              onTap: () => setState(() => _currentIndex = 1),
+            ),
+            NavItem(
+              icon: CupertinoIcons.settings,
+              label: '设置',
+              isActive: _currentIndex == 2,
+              onTap: () => setState(() => _currentIndex = 2),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

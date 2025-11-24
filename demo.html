@@ -1,0 +1,382 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Scan, Zap, Package, ChevronRight, Check, Plus, AlertCircle, Clock, Search } from 'lucide-react';
+
+// --- 配色常量 & 工具 ---
+const COLORS = {
+  bg: '#F5F5F7',
+  card: 'rgba(255, 255, 255, 0.85)',
+  brand: '#0A84FF',
+  textDark: '#1C1C1E',
+  textLight: 'rgba(60, 60, 67, 0.6)', // #3C3C4399
+  safe: '#30D158',
+  warning: '#FFD60A',
+  urgent: '#FF453A',
+};
+
+// 模拟初始数据
+const INITIAL_ITEMS = [
+  { id: 1, name: '全脂牛奶', category: '乳制品', daysLeft: 2, totalDays: 14, emoji: '🥛' },
+  { id: 2, name: '法式软面包', category: '烘焙', daysLeft: 12, totalDays: 20, emoji: '🍞' },
+  { id: 3, name: '牛油果 (3个)', category: '生鲜', daysLeft: 4, totalDays: 10, emoji: '🥑' },
+  { id: 4, name: '草莓果酱', category: '调味', daysLeft: 45, totalDays: 180, emoji: '🍓' },
+  { id: 5, name: '三文鱼切片', category: '冷冻', daysLeft: 1, totalDays: 7, emoji: '🐟' },
+];
+
+// 计算状态颜色
+const getStatusColor = (days) => {
+  if (days <= 3) return COLORS.urgent;
+  if (days <= 15) return COLORS.warning;
+  return COLORS.safe;
+};
+
+// 计算进度条宽度百分比
+const getProgress = (daysLeft, totalDays) => {
+  const percentage = (daysLeft / totalDays) * 100;
+  return Math.min(Math.max(percentage, 5), 100); // 保持最小5%可见
+};
+
+// --- 组件部分 ---
+
+// 1. 顶部 Header
+const Header = ({ items }) => {
+  const urgentCount = items.filter(i => i.daysLeft <= 3).length;
+  const warningCount = items.filter(i => i.daysLeft > 3 && i.daysLeft <= 15).length;
+
+  return (
+    <div className="pt-14 pb-6 px-6 sticky top-0 z-30 transition-all duration-300 backdrop-blur-md bg-[#F5F5F7]/80">
+      <div className="flex justify-between items-end mb-4">
+        <div>
+          <h2 className="text-sm font-medium text-[rgba(60,60,67,0.6)] uppercase tracking-wide">Dashboard</h2>
+          <h1 className="text-3xl font-bold tracking-tight text-[#1C1C1E]">
+            {items.length > 0 ? "Hi, 你的库存良好" : "准备囤点什么？"}
+          </h1>
+        </div>
+        <div className="w-10 h-10 rounded-full bg-white shadow-sm flex items-center justify-center overflow-hidden">
+           <img src="https://api.dicebear.com/7.x/notionists/svg?seed=Felix" alt="User" className="w-full h-full object-cover" />
+        </div>
+      </div>
+
+      {/* 状态概览条 - 悬浮胶囊 */}
+      {items.length > 0 && (
+        <motion.div 
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white/90 backdrop-blur-xl shadow-[0_8px_16px_rgba(0,0,0,0.06)] rounded-2xl p-3 flex items-center justify-between border border-white/50"
+        >
+          <div className="flex items-center space-x-4 px-2">
+            <div className="flex items-center space-x-1.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#FF453A] animate-pulse"></span>
+              <span className="text-sm font-semibold text-[#1C1C1E]">{urgentCount} 急需</span>
+            </div>
+            <div className="w-[1px] h-4 bg-gray-200"></div>
+            <div className="flex items-center space-x-1.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#FFD60A]"></span>
+              <span className="text-sm font-semibold text-[#1C1C1E]">{warningCount} 临期</span>
+            </div>
+          </div>
+          <ChevronRight size={16} className="text-gray-400" />
+        </motion.div>
+      )}
+    </div>
+  );
+};
+
+// 2. 商品卡片
+const ProductCard = ({ item, onConsume }) => {
+  const statusColor = getStatusColor(item.daysLeft);
+  const isUrgent = item.daysLeft <= 3;
+
+  return (
+    <motion.div
+      layout
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.5, y: 100 }}
+      transition={{ type: "spring", stiffness: 300, damping: 25 }}
+      whileTap={{ scale: 0.96 }}
+      className={`
+        relative overflow-hidden rounded-[24px] bg-white/85 backdrop-blur-2xl
+        shadow-[0_4px_12px_rgba(0,0,0,0.04)] border border-white/40
+        flex flex-col h-48 group
+      `}
+    >
+      {/* 剩余天数徽章 */}
+      <div 
+        className="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-white/60 backdrop-blur-md shadow-sm border border-white/50 z-10 flex items-center"
+      >
+        <span 
+          className="text-xs font-bold"
+          style={{ color: statusColor }}
+        >
+          {item.daysLeft}天
+        </span>
+      </div>
+
+      {/* 主体内容 */}
+      <div className="flex-1 flex flex-col items-center justify-center pt-4 pb-2 relative">
+        {/* 紧急状态的呼吸光晕 */}
+        {isUrgent && (
+          <div className="absolute inset-0 bg-red-400/5 blur-2xl rounded-full transform scale-75 animate-pulse"></div>
+        )}
+        
+        {/* Emoji 代替图片 (为了Demo方便，实际可换 img) */}
+        <div className="text-5xl mb-2 drop-shadow-sm z-10 transform group-hover:scale-110 transition-transform duration-300">
+          {item.emoji}
+        </div>
+        
+        <h3 className="text-[15px] font-semibold text-[#1C1C1E] leading-tight z-10 text-center px-2 truncate w-full">
+          {item.name}
+        </h3>
+        <p className="text-[11px] text-[#3C3C4399] font-medium z-10">
+          {item.category}
+        </p>
+      </div>
+
+      {/* 底部交互区：进度条 + 按钮 */}
+      <div className="relative px-4 pb-4 w-full">
+        {/* 进度条 */}
+        <div className="w-full h-1.5 bg-gray-100/80 rounded-full overflow-hidden mb-3">
+          <motion.div 
+            initial={{ width: 0 }}
+            animate={{ width: `${getProgress(item.daysLeft, item.totalDays)}%` }}
+            className="h-full rounded-full"
+            style={{ backgroundColor: statusColor }}
+          />
+        </div>
+
+        {/* 隐形操作层 - 点击卡片底部区域可以消耗 */}
+        <button 
+          onClick={(e) => {
+            e.stopPropagation();
+            onConsume(item.id);
+          }}
+          className="w-full py-1.5 flex items-center justify-center rounded-xl bg-[#F2F2F7] hover:bg-[#E5E5EA] transition-colors active:scale-95"
+        >
+          <Check size={14} className="text-[#8E8E93] mr-1" />
+          <span className="text-[10px] font-semibold text-[#8E8E93]">使用</span>
+        </button>
+      </div>
+    </motion.div>
+  );
+};
+
+// 3. 扫码界面 (模拟)
+const ScannerModal = ({ isOpen, onClose, onScanComplete }) => {
+  const [step, setStep] = useState('scanning'); // scanning | found
+
+  useEffect(() => {
+    if (isOpen) {
+      setStep('scanning');
+      // 模拟 2.5秒后识别成功
+      const timer = setTimeout(() => {
+        setStep('found');
+      }, 2500);
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen]);
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col bg-black">
+      {/* 相机画面模拟 */}
+      <div className="relative flex-1 bg-gray-900 overflow-hidden">
+        {/* 模糊背景模拟真实感 */}
+        <div className="absolute inset-0 opacity-40 bg-[url('https://images.unsplash.com/photo-1542838132-92c53300491e?q=80&w=1000&auto=format&fit=crop')] bg-cover bg-center blur-sm"></div>
+        
+        {/* 关闭按钮 */}
+        <button onClick={onClose} className="absolute top-12 left-6 z-20 text-white bg-black/20 backdrop-blur-md p-2 rounded-full">
+            <Plus className="rotate-45" />
+        </button>
+
+        {/* 扫描框 */}
+        <div className="absolute inset-0 flex items-center justify-center">
+          <motion.div 
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className={`relative w-64 h-64 rounded-[32px] border-[3px] transition-colors duration-500 flex items-center justify-center overflow-hidden
+              ${step === 'scanning' ? 'border-white/30' : 'border-[#30D158] bg-[#30D158]/10'}
+            `}
+          >
+            {/* 扫描光线 */}
+            {step === 'scanning' && (
+              <motion.div 
+                animate={{ top: ['10%', '90%', '10%'] }}
+                transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                className="absolute left-4 right-4 h-0.5 bg-[#0A84FF] shadow-[0_0_15px_#0A84FF]"
+              />
+            )}
+
+            {/* 四角装饰 */}
+            <div className="absolute top-0 left-0 w-6 h-6 border-t-4 border-l-4 border-white rounded-tl-xl m-1"></div>
+            <div className="absolute top-0 right-0 w-6 h-6 border-t-4 border-r-4 border-white rounded-tr-xl m-1"></div>
+            <div className="absolute bottom-0 left-0 w-6 h-6 border-b-4 border-l-4 border-white rounded-bl-xl m-1"></div>
+            <div className="absolute bottom-0 right-0 w-6 h-6 border-b-4 border-r-4 border-white rounded-br-xl m-1"></div>
+
+            {step === 'scanning' && <span className="text-white/80 font-medium tracking-widest text-xs mt-32">SEARCHING...</span>}
+            {step === 'found' && <Check size={48} className="text-[#30D158] drop-shadow-md" />}
+          </motion.div>
+        </div>
+      </div>
+
+      {/* 底部结果浮层 */}
+      <AnimatePresence>
+        {step === 'found' && (
+          <motion.div 
+            initial={{ y: "100%" }}
+            animate={{ y: 0 }}
+            exit={{ y: "100%" }}
+            className="absolute bottom-0 left-0 right-0 bg-[#F5F5F7] rounded-t-[32px] p-6 pb-12 shadow-2xl"
+          >
+            <div className="flex items-center gap-4 mb-6">
+              <div className="w-16 h-16 bg-white rounded-2xl shadow-sm flex items-center justify-center text-3xl">
+                🍎
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-[#1C1C1E]">红富士苹果</h3>
+                <p className="text-gray-500 text-sm">生鲜水果 • 建议7天内食用</p>
+              </div>
+            </div>
+            <button 
+              onClick={() => onScanComplete({ id: Date.now(), name: '红富士苹果', category: '生鲜', daysLeft: 7, totalDays: 7, emoji: '🍎' })}
+              className="w-full bg-[#0A84FF] active:bg-[#0071e3] text-white font-bold py-4 rounded-2xl shadow-lg shadow-blue-500/30 text-lg transition-transform active:scale-95"
+            >
+              确认入库
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
+// 4. 空状态
+const EmptyState = () => (
+  <motion.div 
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+    className="flex flex-col items-center justify-center h-[50vh] text-center px-10"
+  >
+    <div className="w-32 h-32 bg-gray-100 rounded-full flex items-center justify-center mb-6 shadow-inner">
+      <Package size={48} className="text-gray-300" />
+    </div>
+    <h3 className="text-xl font-bold text-[#1C1C1E] mb-2">储物间空空如也</h3>
+    <p className="text-[#3C3C4399] text-sm leading-relaxed mb-8">
+      你的数字货架很干净。<br/>点击下方按钮开始扫码囤货吧。
+    </p>
+    <div className="text-gray-300 animate-bounce">
+        ↓
+    </div>
+  </motion.div>
+);
+
+// --- 主应用 ---
+export default function ApplePantryApp() {
+  const [items, setItems] = useState(INITIAL_ITEMS);
+  const [filter, setFilter] = useState('all'); // all, urgent
+  const [isScanning, setIsScanning] = useState(false);
+
+  // 消费物品（删除）
+  const handleConsume = (id) => {
+    setItems(prev => prev.filter(item => item.id !== id));
+  };
+
+  // 添加物品
+  const handleAddItem = (newItem) => {
+    setItems(prev => [newItem, ...prev]);
+    setIsScanning(false);
+  };
+
+  // 筛选逻辑
+  const filteredItems = items.filter(item => {
+    if (filter === 'urgent') return item.daysLeft <= 3;
+    if (filter === 'warning') return item.daysLeft <= 15;
+    return true;
+  });
+
+  return (
+    <div className="min-h-screen bg-[#F5F5F7] text-[#1C1C1E] font-sans overflow-x-hidden pb-32">
+      {/* 移动端视口设置 (通常在 html head，这里模拟容器) */}
+      <div className="max-w-md mx-auto min-h-screen relative shadow-2xl bg-[#F5F5F7]">
+        
+        <Header items={items} />
+
+        {/* 内容区域 */}
+        <main className="px-6">
+          {items.length === 0 ? (
+            <EmptyState />
+          ) : (
+            <>
+              {/* 简单的 Tab 切换 */}
+              <div className="flex space-x-2 mb-6 overflow-x-auto no-scrollbar py-1">
+                {['all', 'warning', 'urgent'].map((f) => {
+                    const label = f === 'all' ? '全部' : f === 'warning' ? '临期' : '紧急';
+                    const active = filter === f;
+                    return (
+                        <button 
+                            key={f}
+                            onClick={() => setFilter(f)}
+                            className={`
+                                px-4 py-2 rounded-full text-xs font-semibold transition-all duration-300
+                                ${active 
+                                    ? 'bg-[#1C1C1E] text-white shadow-md transform scale-105' 
+                                    : 'bg-white text-gray-500 border border-gray-100'
+                                }
+                            `}
+                        >
+                            {label}
+                        </button>
+                    )
+                })}
+              </div>
+
+              {/* 网格布局 */}
+              <motion.div 
+                layout
+                className="grid grid-cols-2 gap-4 pb-20"
+              >
+                <AnimatePresence>
+                  {filteredItems.map((item) => (
+                    <ProductCard 
+                      key={item.id} 
+                      item={item} 
+                      onConsume={handleConsume} 
+                    />
+                  ))}
+                </AnimatePresence>
+              </motion.div>
+            </>
+          )}
+        </main>
+
+        {/* 超级扫码钮 (FAB) */}
+        <div className="fixed bottom-8 left-0 right-0 flex justify-center z-40 pointer-events-none">
+            <div className="pointer-events-auto max-w-md w-full flex justify-center relative">
+                <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => setIsScanning(true)}
+                    className="group relative w-16 h-16 rounded-full bg-[#0A84FF] shadow-[0_8px_24px_rgba(10,132,255,0.4)] flex items-center justify-center text-white"
+                >
+                    {/* 呼吸光环 */}
+                    <div className="absolute inset-0 rounded-full bg-white opacity-20 group-hover:animate-ping"></div>
+                    
+                    <div className="flex flex-col items-center justify-center space-y-0.5">
+                        <Scan size={24} strokeWidth={2.5} />
+                    </div>
+                </motion.button>
+            </div>
+        </div>
+
+        {/* 扫码模态框 */}
+        <ScannerModal 
+          isOpen={isScanning} 
+          onClose={() => setIsScanning(false)}
+          onScanComplete={handleAddItem}
+        />
+
+      </div>
+    </div>
+  );
+}

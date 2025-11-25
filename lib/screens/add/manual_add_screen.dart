@@ -4,10 +4,12 @@ import '../../models/product.dart';
 
 class ManualAddScreen extends StatefulWidget {
   final Function(ProductItem) onAddComplete;
+  final Map<String, dynamic>? prefillData; // 预填充数据
 
   const ManualAddScreen({
     Key? key,
     required this.onAddComplete,
+    this.prefillData,
   }) : super(key: key);
 
   @override
@@ -23,6 +25,21 @@ class _ManualAddScreenState extends State<ManualAddScreen> {
   final _totalDaysController = TextEditingController();
   final _emojiController = TextEditingController();
   final _descriptionController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    // 预填充表单数据
+    if (widget.prefillData != null) {
+      _nameController.text = widget.prefillData!['name'] ?? '';
+      _categoryController.text = widget.prefillData!['category'] ?? '';
+      _brandController.text = widget.prefillData!['brand'] ?? '';
+      _daysLeftController.text = (widget.prefillData!['daysLeft'] ?? 7).toString();
+      _totalDaysController.text = (widget.prefillData!['totalDays'] ?? 14).toString();
+      _emojiController.text = widget.prefillData!['emoji'] ?? '';
+      _descriptionController.text = widget.prefillData!['description'] ?? '';
+    }
+  }
 
   @override
   void dispose() {
@@ -62,9 +79,9 @@ class _ManualAddScreenState extends State<ManualAddScreen> {
       appBar: AppBar(
         backgroundColor: AppColors.bg,
         elevation: 0,
-        title: const Text(
-          '手动添加',
-          style: TextStyle(
+        title: Text(
+          widget.prefillData != null ? '确认商品信息' : '手动添加',
+          style: const TextStyle(
             color: AppColors.textDark,
             fontSize: 18,
             fontWeight: FontWeight.w600,

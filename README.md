@@ -1,4 +1,4 @@
-# 🍏 果味储物间 (Apple Pantry)
+# 🍏 储物间 (Apple Pantry)
 
 > 一个优雅的食物库存管理应用，帮助您跟踪食品保质期，减少浪费
 
@@ -345,15 +345,6 @@ A: 当前版本使用内存存储，生产环境建议使用云数据库同步�
 - [Apple HIG](https://developer.apple.com/design/human-interface-guidelines/) - iOS设计指南
 
 ---
-
-## 📞 联系我们
-
-- 项目作者: [Your Name]
-- 邮箱: your.email@example.com
-- 项目链接: [https://github.com/your-username/apple-pantry](https://github.com/your-username/apple-pantry)
-
----
-
 **⭐ 如果这个项目对您有帮助，请给我们一个Star！**
 
 ---

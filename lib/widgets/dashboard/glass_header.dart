@@ -118,24 +118,31 @@ class GlassHeader extends StatelessWidget {
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
+        mainAxisSize: MainAxisSize.min,
         children: [
           if (urgentCount > 0)
-            StatusDot(
-              count: urgentCount,
-              label: '紧急',
-              color: 'urgent',
+            Flexible(
+              child: StatusDot(
+                count: urgentCount,
+                label: '紧急',
+                color: 'urgent',
+              ),
             ),
           if (warningCount > 0)
-            StatusDot(
-              count: warningCount,
-              label: '临期',
-              color: 'warning',
+            Flexible(
+              child: StatusDot(
+                count: warningCount,
+                label: '临期',
+                color: 'warning',
+              ),
             ),
           if (urgentCount == 0 && warningCount == 0)
-            const StatusDot(
-              count: 0,
-              label: '全部新鲜',
-              color: 'safe',
+            const Flexible(
+              child: StatusDot(
+                count: 0,
+                label: '全部新鲜',
+                color: 'safe',
+              ),
             ),
         ],
       ),

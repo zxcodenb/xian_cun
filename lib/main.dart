@@ -9,6 +9,13 @@ import 'models/product.dart';
 
 // --- Constants ---
 import 'constants/app_colors.dart';
+import 'constants/api_config.dart';
+
+// --- Services ---
+import 'services/product_service.dart';
+import 'services/category_service.dart';
+import 'services/stats_service.dart';
+import 'services/ai_recognition_service.dart';
 
 // --- Widgets (Common) ---
 import 'widgets/common/product_filter_chip.dart';
@@ -31,7 +38,7 @@ import 'screens/product_detail/product_detail_sheet.dart';
 import 'screens/dashboard/dashboard_screen.dart';
 import 'screens/add/add_select_screen.dart';
 import 'screens/add/manual_add_screen.dart';
-import 'screens/add/scanner_screen.dart';
+import 'screens/add/camera_capture_screen.dart';
 import 'screens/settings/settings_screen.dart';
 
 // --- 入口 ---
@@ -73,95 +80,131 @@ class MainShell extends StatefulWidget {
 
 class _MainShellState extends State<MainShell> {
   int _currentIndex = 0;
+  bool _isLoading = true;
+  String? _errorMessage;
+
+  // API服务实例
+  late final ProductService _productService;
+  late final CategoryService _categoryService;
+  late final StatsService _statsService;
 
   // 维护商品列表状态
-  final List<ProductItem> _items = [];
+  List<ProductItem> _items = [];
 
-  _MainShellState() {
-    // 初始化模拟数据
-    _items.addAll([
-      ProductItem(
-        id: 1,
-        name: '全脂牛奶',
-        category: '乳制品',
-        daysLeft: 2,
-        totalDays: 14,
-        emoji: '🥛',
-        purchaseDate: DateTime.now().subtract(const Duration(days: 12)),
-        brand: '蒙牛',
-        description: '精选优质牧场奶源，口感醇厚，营养丰富。适合直接饮用或制作咖啡、麦片等。',
-      ),
-      ProductItem(
-        id: 2,
-        name: '法式软面包',
-        category: '烘焙',
-        daysLeft: 12,
-        totalDays: 20,
-        emoji: '🍞',
-        purchaseDate: DateTime.now().subtract(const Duration(days: 8)),
-        brand: '味多美',
-        description: '新鲜出炉的法式软面包，松软香甜，是早餐的完美选择。',
-      ),
-      ProductItem(
-        id: 3,
-        name: '牛油果 (3个)',
-        category: '生鲜',
-        daysLeft: 4,
-        totalDays: 10,
-        emoji: '🥑',
-        purchaseDate: DateTime.now().subtract(const Duration(days: 6)),
-        brand: '进口精选',
-        description: '来自墨西哥的优质牛油果，富含健康脂肪和维生素，口感绵密香甜。',
-      ),
-      ProductItem(
-        id: 4,
-        name: '草莓果酱',
-        category: '调味',
-        daysLeft: 45,
-        totalDays: 180,
-        emoji: '🍓',
-        purchaseDate: DateTime.now().subtract(const Duration(days: 135)),
-        brand: '农夫果园',
-        description: '100%新鲜草莓制作，无添加剂，可搭配吐司、酸奶食用。',
-      ),
-      ProductItem(
-        id: 5,
-        name: '三文鱼切片',
-        category: '冷冻',
-        daysLeft: 1,
-        totalDays: 7,
-        emoji: '🐟',
-        purchaseDate: DateTime.now().subtract(const Duration(days: 6)),
-        brand: '挪威海产',
-        description: '新鲜三文鱼切片，肉质鲜美，富含Omega-3脂肪酸。推荐生食或轻煎。',
-      ),
-    ]);
+  @override
+  void initState() {
+    super.initState();
+    _initializeServices();
+    _loadData();
+  }
+
+  void _initializeServices() {
+    _productService = ProductService();
+    _categoryService = CategoryService();
+    _statsService = StatsService();
+  }
+
+  Future<void> _loadData() async {
+    try {
+      setState(() {
+        _isLoading = true;
+        _errorMessage = null;
+      });
+
+      // 从API加载商品列表
+      final products = await _productService.getProducts();
+      setState(() {
+        _items = products;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+        _errorMessage = e.toString();
+      });
+      // 显示错误提示
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('加载失败: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   // 处理添加商品
-  void _handleAddItem(ProductItem item) {
-    setState(() {
-      _items.insert(0, item);
-      _currentIndex = 0; // 返回首页
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('已添加: ${item.name}'),
-        duration: const Duration(seconds: 2),
-      ),
-    );
+  void _handleAddItem(ProductItem item) async {
+    try {
+      // 调用API创建商品
+      final newProduct = await _productService.createProduct(
+        name: item.name,
+        category: item.category,
+        brand: item.brand,
+        daysLeft: item.daysLeft,
+        totalDays: item.totalDays,
+        emoji: item.emoji,
+        description: item.description,
+      );
+
+      setState(() {
+        _items.insert(0, newProduct);
+        _currentIndex = 0; // 返回首页
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('已添加: ${newProduct.name}'),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('添加失败: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
-  // 提供给Dashboard的添加方法
-  void addItem(ProductItem item) {
-    _handleAddItem(item);
+  // 处理删除商品
+  void _handleDeleteItem(int id) async {
+    try {
+      await _productService.deleteProduct(id);
+      setState(() {
+        _items.removeWhere((item) => item.id == id);
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('商品已删除'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('删除失败: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
-  // 切换到添加页面
-  void _navigateToAdd() {
-    setState(() {
-      _currentIndex = 1;
-    });
+  @override
+  void dispose() {
+    _productService.dispose();
+    _categoryService.dispose();
+    _statsService.dispose();
+    super.dispose();
   }
 
   @override
@@ -177,8 +220,53 @@ class _MainShellState extends State<MainShell> {
         onScanComplete: _handleAddItem,
         onManualAddComplete: _handleAddItem,
       ),
-      const SettingsScreen(),
+      SettingsScreen(
+        onRefreshData: _loadData,
+      ),
     ];
+
+    // 如果正在加载，显示加载指示器
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    // 如果有错误，显示错误页面
+    if (_errorMessage != null && _items.isEmpty) {
+      return Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(
+                CupertinoIcons.exclamationmark_triangle,
+                size: 64,
+                color: Colors.orange,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                '加载失败',
+                style: Theme.of(context).textTheme.headlineSmall,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _errorMessage!,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: _loadData,
+                child: const Text('重试'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
 
     return Scaffold(
       body: IndexedStack(

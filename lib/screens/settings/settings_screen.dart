@@ -3,7 +3,12 @@ import '../../constants/app_colors.dart';
 import '../../widgets/settings/settings_item.dart';
 
 class SettingsScreen extends StatelessWidget {
-  const SettingsScreen({Key? key}) : super(key: key);
+  final VoidCallback? onRefreshData;
+
+  const SettingsScreen({
+    Key? key,
+    this.onRefreshData,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {

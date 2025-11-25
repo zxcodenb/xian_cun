@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../constants/app_colors.dart';
 import '../../models/product.dart';
 import 'manual_add_screen.dart';
-import 'scanner_screen.dart';
+import 'camera_capture_screen.dart';
 
 class AddSelectScreen extends StatefulWidget {
   final Function(ProductItem) onScanComplete;
@@ -54,16 +54,16 @@ class _AddSelectScreenState extends State<AddSelectScreen> {
               child: ListView(
                 children: [
                   _buildOptionCard(
-                    icon: Icons.qr_code_scanner,
-                    title: '扫码添加',
-                    subtitle: '使用相机扫描条码快速添加商品',
+                    icon: Icons.camera_alt,
+                    title: '拍照添加',
+                    subtitle: '拍照并使用AI智能识别商品信息',
                     color: AppColors.brand,
                     onTap: () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => ScannerScreen(
-                            onScanComplete: widget.onScanComplete,
+                          builder: (context) => CameraCaptureScreen(
+                            onCaptureComplete: widget.onScanComplete,
                           ),
                         ),
                       );

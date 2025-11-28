@@ -68,6 +68,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
+      enableDrag: true,
+      isDismissible: true,
       builder: (context) => ProductDetailSheet(item: item),
     );
   }

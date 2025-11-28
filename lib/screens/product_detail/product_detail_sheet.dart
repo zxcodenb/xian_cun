@@ -41,21 +41,24 @@ class ProductDetailSheet extends StatelessWidget {
                   controller: scrollController,
                   padding: const EdgeInsets.all(20),
                   children: [
-                    // 商品基本信息
+                    // 商品基本信息 - 添加Hero动画
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Container(
-                          width: 80,
-                          height: 80,
-                          decoration: BoxDecoration(
-                            color: AppColors.cardBg,
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Center(
-                            child: Text(
-                              item.emoji,
-                              style: const TextStyle(fontSize: 40),
+                        Hero(
+                          tag: 'product_emoji_${item.id}',
+                          child: Container(
+                            width: 80,
+                            height: 80,
+                            decoration: BoxDecoration(
+                              color: AppColors.cardBg,
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Center(
+                              child: Text(
+                                item.emoji,
+                                style: const TextStyle(fontSize: 40),
+                              ),
                             ),
                           ),
                         ),

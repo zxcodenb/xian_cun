@@ -82,6 +82,7 @@ class _MainShellState extends State<MainShell> {
   int _currentIndex = 0;
   bool _isLoading = true;
   String? _errorMessage;
+  final PageController _pageController = PageController();
 
   // API服务实例
   late final ProductService _productService;
@@ -148,8 +149,14 @@ class _MainShellState extends State<MainShell> {
 
       setState(() {
         _items.insert(0, newProduct);
-        _currentIndex = 0; // 返回首页
       });
+
+      // 返回首页并显示动画
+      _pageController.animateToPage(
+        0,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -201,6 +208,7 @@ class _MainShellState extends State<MainShell> {
 
   @override
   void dispose() {
+    _pageController.dispose();
     _productService.dispose();
     _categoryService.dispose();
     _statsService.dispose();
@@ -269,21 +277,38 @@ class _MainShellState extends State<MainShell> {
     }
 
     return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
+      body: PageView(
+        controller: _pageController,
+        onPageChanged: (index) {
+          setState(() {
+            _currentIndex = index;
+          });
+        },
         children: _pages,
       ),
       bottomNavigationBar: Container(
-        height: 84,
-        padding: const EdgeInsets.only(bottom: 20),
+        height: 70,
+        padding: const EdgeInsets.only(bottom: 16, top: 6),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(0),
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Colors.white.withOpacity(0.95),
+              Colors.white,
+            ],
+          ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
+              color: AppColors.brand.withOpacity(0.08),
+              blurRadius: 20,
               offset: const Offset(0, -4),
+              spreadRadius: -2,
+            ),
+            BoxShadow(
+              color: Colors.white.withOpacity(0.9),
+              blurRadius: 4,
+              offset: const Offset(0, -1),
             ),
           ],
         ),
@@ -294,19 +319,37 @@ class _MainShellState extends State<MainShell> {
               icon: CupertinoIcons.home,
               label: '首页',
               isActive: _currentIndex == 0,
-              onTap: () => setState(() => _currentIndex = 0),
+              onTap: () {
+                _pageController.animateToPage(
+                  0,
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeInOut,
+                );
+              },
             ),
             NavItem(
-              icon: CupertinoIcons.add,
+              icon: CupertinoIcons.add_circled_solid,
               label: '新增',
               isActive: _currentIndex == 1,
-              onTap: () => setState(() => _currentIndex = 1),
+              onTap: () {
+                _pageController.animateToPage(
+                  1,
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeInOut,
+                );
+              },
             ),
             NavItem(
               icon: CupertinoIcons.settings,
               label: '设置',
               isActive: _currentIndex == 2,
-              onTap: () => setState(() => _currentIndex = 2),
+              onTap: () {
+                _pageController.animateToPage(
+                  2,
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeInOut,
+                );
+              },
             ),
           ],
         ),
